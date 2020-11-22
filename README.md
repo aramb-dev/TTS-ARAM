@@ -88,10 +88,12 @@ You can change the voice, reading speed, pitch, or enable text highlighting:
 
 ## Installation
  This is your installation guide. 
- Step 1:
-  <img src="https://i.imgur.com/ii9cRiR.png" >
-  <img src="https://i.imgur.com/bstu8Z4.png" >
-  <img src="https://i.imgur.com/GpLqole.png" >
+ Step 1:<br>
+  <img src="https://i.imgur.com/ii9cRiR.png" ><br>
+  Step 2:<br>
+  <img src="https://i.imgur.com/bstu8Z4.png" ><br>
+  Step 3:<br>
+  <img src="https://i.imgur.com/GpLqole.png" ><br>
 
 ### Firefox
 You can get the latest version of Read Aloud Extension from the [Mozilla Add-ons website](https://addons.mozilla.org/en-US/firefox/addon/read-aloud/).
