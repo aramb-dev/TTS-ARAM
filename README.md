@@ -15,21 +15,12 @@
 
 <div align="center">
     <br> github stats:
-    <img src="https://badgen.net/github/stars/ken107/read-aloud" >
-    <img src="https://badgen.net/github/open-issues/ken107/read-aloud" >
-    <img src="https://badgen.net/github/open-prs/ken107/read-aloud" >
-    <img src="https://badgen.net/github/tag/ken107/read-aloud" >
-    <img src="https://badgen.net/github/license/ken107/read-aloud/" >
-    <br> chrome web store stats:
-    <img src="https://badgen.net/chrome-web-store/users/hdhinadidafjejdhmfkjgnolgimiaplp" >
-    <img src="https://badgen.net/chrome-web-store/rating/hdhinadidafjejdhmfkjgnolgimiaplp" >
-    <img src="https://badgen.net/chrome-web-store/rating-count/hdhinadidafjejdhmfkjgnolgimiaplp" >
-    <img src="https://badgen.net/chrome-web-store/v/hdhinadidafjejdhmfkjgnolgimiaplp" >
-    <br> firefox addon stats:
-    <img src="https://badgen.net/amo/users/read-aloud" >
-    <img src="https://badgen.net/amo/rating/read-aloud" >
-    <img src="https://badgen.net/amo/reviews/read-aloud" >
-    <img src="https://badgen.net/amo/v/read-aloud" >
+    <img src="https://badgen.net/github/stars/aramservices198/TTS-ARAM" >
+    <img src="https://badgen.net/github/open-issues/aramservices198/TTS-ARAM" >
+    <img src="https://badgen.net/github/open-prs/aramservices198/TTS-ARAM" >
+    <img src="https://badgen.net/github/tag/aramservices198/TTS-ARAM" >
+    <img src="https://badgen.net/github/license/aramservices198/TTS-ARAM" >
+    
 </div>
 
 <br>
@@ -94,14 +85,13 @@ You can change the voice, reading speed, pitch, or enable text highlighting:
 3. Click on the Gear icon in the Read Aloud context menu. (It may take a second or two for settings to appear)
 
 
-### Using Premium Voices
-[Using Premium Voices (Google Wavenet & Amazon Polly)](docs/usage/premium-voices.md)
-
 
 ## Installation
-
-### Chrome and Chromium-based browsers
-You can get the latest available Read Aloud Extension version from the [Chrome Web Store](https://chrome.google.com/webstore/detail/read-aloud-a-text-to-spee/hdhinadidafjejdhmfkjgnolgimiaplp).
+ This is your installation guide. 
+ Step 1:
+  <img src="https://i.imgur.com/ii9cRiR.png" >
+  <img src="https://i.imgur.com/bstu8Z4.png" >
+  <img src="https://i.imgur.com/GpLqole.png" >
 
 ### Firefox
 You can get the latest version of Read Aloud Extension from the [Mozilla Add-ons website](https://addons.mozilla.org/en-US/firefox/addon/read-aloud/).
@@ -110,9 +100,9 @@ You can get the latest version of Read Aloud Extension from the [Mozilla Add-ons
 
 - Star this GitHub repo :star:
 - Post about it on your social media (Twitter / Blogs / Facebook / Instagram etc).
-- Leave a positive review on the [Chrome Web Store](https://chrome.google.com/webstore/detail/read-aloud-a-text-to-spee/hdhinadidafjejdhmfkjgnolgimiaplp) or [Firefox Addon](https://addons.mozilla.org/en-US/firefox/addon/read-aloud/) pages.
+- Leave a positive review on the[Coming Soon](https://www.github.com/aramservices198) pages.
 - Create pull requests, submit bugs, suggest new features or documentation updates 🛠 
-	- To do so, go to [this page](https://github.com/ken107/read-aloud/issues) and click the *New issue* button.
+	- To do so, go to [this page](https://github.com/aramservices198/TTS-ARAM/issues) and click the [*New issue*](https://github.com/aramservices198/TTS-ARAM/issues/new) button.
 
 
 ## Credits
