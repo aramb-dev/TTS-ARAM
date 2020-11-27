@@ -1,6 +1,6 @@
 {
-  "name": "read-aloud",
-  "version": "1.0.0",
+  "name": "tts-aram",
+  "version": "19.0.99",
   "description": "A Chrome extension that reads aloud the webpage's content with just one click. Support 40+ languages.",
   "directories": {
     "doc": "docs"
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ken107/read-aloud.git"
+    "url": "git+https://github.com/aramservices198/tts-aram.git"
   },
   "keywords": [
     "text-to-speech",
@@ -22,5 +22,5 @@
   "bugs": {
     "url": "https://github.com/aramservices198/TTS-ARAM/issues/new"
   },
-  "homepage": "https://readaloud.app"
+  "homepage": "https://aramservices198.github.io/TTS-aram"
 }
