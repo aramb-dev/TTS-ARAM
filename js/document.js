@@ -1,6 +1,9 @@
 
-function SimpleSource(texts) {
-  this.ready = Promise.resolve({});
+function SimpleSource(texts, opts) {
+  opts = opts || {}
+  this.ready = Promise.resolve({
+    lang: opts.lang,
+  })
   this.isWaiting = function() {
     return false;
   }
@@ -20,8 +23,9 @@ function SimpleSource(texts) {
 }
 
 
-function TabSource() {
+function TabSource(tabId) {
   var handlers = [
+    // Unsupported Sites --------------------------------------------------------
     {
       match: function(url) {
         return config.unsupportedSites.some(function(site) {
@@ -32,14 +36,18 @@ function TabSource() {
         throw new Error(JSON.stringify({code: "error_page_unreadable"}));
       }
     },
+
+    // PDF file:// --------------------------------------------------------------
     {
       match: function(url) {
         return /^file:.*\.pdf$/i.test(url.split("?")[0]);
       },
       validate: function() {
-        throw new Error(JSON.stringify({code: "error_upload_pdf"}));
+        throw new Error(JSON.stringify({code: "error_upload_pdf", tabId: tab.id}));
       }
     },
+
+    // file:// ------------------------------------------------------------------
     {
       match: function(url) {
         return /^file:/.test(url);
@@ -53,6 +61,8 @@ function TabSource() {
         })
       }
     },
+
+    // Google Play Books ---------------------------------------------------------
     {
       match: function(url) {
         return /^https:\/\/play.google.com\/books\/reader/.test(url) || /^https:\/\/books.google.com\/ebooks\/app#reader/.test(url);
@@ -75,9 +85,60 @@ function TabSource() {
       },
       extraScripts: ["js/content/google-play-book.js"]
     },
+
+    // OneDrive Doc -----------------------------------------------------------
     {
       match: function(url) {
-        return /^https:\/\/\w+\.(vitalsource|chegg)\.com\/#\/books\//.test(url);
+        return url.startsWith("https://onedrive.live.com/edit.aspx") && url.includes("docx");
+      },
+      validate: function() {
+        var perms = {
+          permissions: ["webNavigation"],
+          origins: ["https://word-edit.officeapps.live.com/"]
+        }
+        return hasPermissions(perms)
+          .then(function(has) {
+            if (!has) throw new Error(JSON.stringify({code: "error_add_permissions", perms: perms}));
+          })
+      },
+      getFrameId: function(frames) {
+        var frame = frames.find(function(frame) {
+          return frame.url.startsWith("https://word-edit.officeapps.live.com/");
+        })
+        return frame && frame.frameId;
+      },
+      extraScripts: ["js/content/onedrive-doc.js"]
+    },
+
+    // Chegg NEW --------------------------------------------------------------
+    {
+      match: function(url) {
+        return /^https:\/\/www\.chegg\.com\/reader\//.test(url);
+      },
+      validate: function() {
+        var perms = {
+          permissions: ["webNavigation"],
+          origins: ["https://ereader-web-viewer.chegg.com/"]
+        }
+        return hasPermissions(perms)
+          .then(function(has) {
+            if (!has) throw new Error(JSON.stringify({code: "error_add_permissions", perms: perms}));
+          })
+      },
+      getFrameId: function(frames) {
+        var frame = frames.find(function(frame) {
+          return frame.url.startsWith("https://ereader-web-viewer.chegg.com/");
+        })
+        return frame && frame.frameId;
+      },
+      extraScripts: ["js/content/chegg-book.js"]
+    },
+
+    // VitalSource/Chegg ---------------------------------------------------------
+    {
+      match: function(url) {
+        return /^https:\/\/\w+\.vitalsource\.com\/(#|reader)\/books\//.test(url) ||
+          /^https:\/\/\w+\.chegg\.com\/(#|reader)\/books\//.test(url)
       },
       validate: function() {
         var perms = {
@@ -108,6 +169,31 @@ function TabSource() {
       },
       extraScripts: ["js/content/vitalsource-book.js"]
     },
+
+    // Liberty University ---------------------------------------------------------
+    {
+      match: function(url) {
+        return url.startsWith("https://luoa.instructure.com/courses/")
+      },
+      validate: function() {
+        var perms = {
+          permissions: ["webNavigation"],
+          origins: ["https://luoa-content.s3.amazonaws.com/"]
+        }
+        return hasPermissions(perms)
+          .then(function(has) {
+            if (!has) throw new Error(JSON.stringify({code: "error_add_permissions", perms: perms}))
+          })
+      },
+      getFrameId: function(frames) {
+        var frame = frames.find(function(frame) {
+          return frame.url && frame.url.startsWith("https://luoa-content.s3.amazonaws.com/")
+        })
+        return frame && frame.frameId
+      }
+    },
+
+    // EPUBReader ---------------------------------------------------------------
     {
       match: function(url) {
         return /^chrome-extension:\/\/jhhclmfgfllimlhabjkgkeebkbiadflb\/reader.html/.test(url);
@@ -161,6 +247,32 @@ function TabSource() {
           }))
       }
     },
+
+    // LibbyApp ---------------------------------------------------------------
+    {
+      match: function(url) {
+        return url.startsWith("https://libbyapp.com/open/")
+      },
+      validate: function() {
+        var perms = {
+          permissions: ["webNavigation"],
+          origins: ["https://*.read.libbyapp.com/"]
+        }
+        return hasPermissions(perms)
+          .then(function(has) {
+            if (!has) throw new Error(JSON.stringify({code: "error_add_permissions", perms: perms}))
+          })
+      },
+      getFrameId: function(frames) {
+        var frame = frames.find(function(frame) {
+          return frame.url && new URL(frame.url).hostname.endsWith(".read.libbyapp.com")
+        })
+        return frame && frame.frameId
+      },
+      extraScripts: ["js/content/libbyapp.js"]
+    },
+
+    // default -------------------------------------------------------------------
     {
       match: function() {
         return true;
@@ -171,7 +283,7 @@ function TabSource() {
   ]
 
 
-  var tabPromise = getActiveTab();
+  var tabPromise = tabId ? getTab(tabId) : getActiveTab();
   var tab, handler, frameId, peer;
   var waiting = true;
 
@@ -288,7 +400,7 @@ function Doc(source, onEnd) {
     .then(function(uri) {return setState("lastUrl", uri)})
     .then(function() {return source.ready})
     .then(function(result) {info = result})
-  var hasText;
+  var foundText;
 
   this.close = close;
   this.play = play;
@@ -330,21 +442,27 @@ function Doc(source, onEnd) {
       })
       .then(function(texts) {
         if (texts) {
-          if (texts.length) hasText = true;
-          return read(texts);
+          if (texts.length) {
+            foundText = true;
+            return read(texts);
+          }
+          else {
+            currentIndex++;
+            return readCurrent();
+          }
         }
-        else if (onEnd) {
-          if (hasText) onEnd();
-          else onEnd(new Error(JSON.stringify({code: "error_no_text"})));
+        else {
+          if (!foundText) throw new Error(JSON.stringify({code: "error_no_text"}))
+          if (onEnd) onEnd()
         }
       })
     function read(texts) {
+      texts = texts.map(preprocess)
       return Promise.resolve()
         .then(function() {
           if (info.detectedLang == null)
             return detectLanguage(texts)
               .then(function(lang) {
-                console.log("Detected", lang);
                 info.detectedLang = lang || "";
               })
         })
@@ -359,17 +477,24 @@ function Doc(source, onEnd) {
             else {
               activeSpeech = null;
               currentIndex++;
-              readCurrent();
+              readCurrent()
+                .catch(function(err) {
+                  if (onEnd) onEnd(err)
+                })
             }
           };
           if (rewinded) activeSpeech.gotoEnd();
           return activeSpeech.play();
         })
     }
+    function preprocess(text) {
+      text = truncateRepeatedChars(text, 3)
+      return text.replace(/https?:\/\/\S+/g, "HTTP URL.")
+    }
   }
 
   function detectLanguage(texts) {
-    var minChars = 1000;
+    var minChars = 240;
     var maxPages = 10;
     var output = combineTexts("", texts);
     if (output.length < minChars) {
@@ -399,9 +524,16 @@ function Doc(source, onEnd) {
   }
 
   function detectLanguageOf(text) {
-    if (text.length < 50) {
-      //don't detect language if too little text
-      return Promise.resolve(null);
+    if (text.length < 100) {
+      //too little text, use cloud detection for improved accuracy
+      return serverDetectLanguage(text)
+        .then(function(result) {
+          return result || browserDetectLanguage(text)
+        })
+        .then(function(lang) {
+          //exclude commonly misdetected languages
+          return ["cy", "eo"].includes(lang) ? null : lang
+        })
     }
     return browserDetectLanguage(text)
       .then(function(result) {
@@ -429,13 +561,24 @@ function Doc(source, onEnd) {
   function serverDetectLanguage(text) {
       return ajaxPost(config.serviceUrl + "/read-aloud/detect-language", {text: text}, "json")
         .then(JSON.parse)
-        .then(function(list) {return list[0] && list[0].language})
+        .then(function(res) {
+          var result = Array.isArray(res) ? res[0] : res
+          if (result && result.language && result.language != "und") return result.language
+          else return null
+        })
+        .catch(function(err) {
+          console.error(err)
+          return null
+        })
   }
 
   function getSpeech(texts) {
     return getSettings()
       .then(function(settings) {
+        console.log("Declared", info.lang)
+        console.log("Detected", info.detectedLang)
         var lang = (!info.detectedLang || info.lang && info.lang.startsWith(info.detectedLang)) ? info.lang : info.detectedLang;
+        console.log("Chosen", lang)
         var options = {
           rate: settings.rate || defaults.rate,
           pitch: settings.pitch || defaults.pitch,

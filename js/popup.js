@@ -1,7 +1,20 @@
 
-var showGotoPage;
+var queryString = getQueryString()
+
+var playbackErrorProcessor = {
+  lastError: {},
+  next: function(err) {
+    if (err.message != this.lastError.message) {
+      this.lastError = err
+      handleError(err)
+    }
+  }
+}
 
 $(function() {
+  if (queryString.isPopup) $("body").addClass("is-popup")
+  else getCurrentTab().then(function(currentTab) {return updateSettings({readAloudTab: currentTab.id})})
+
   $("#btnPlay").click(onPlay);
   $("#btnPause").click(onPause);
   $("#btnStop").click(onStop);
@@ -14,10 +27,36 @@ $(function() {
   $("#increase-window-size").click(changeWindowSize.bind(null, +1));
 
   updateButtons()
-    .then(bgPageInvoke.bind(null, "getPlaybackState"))
-    .then(function(state) {
-      if (state != "PLAYING") $("#btnPlay").click();
-    });
+    .then(getSettings.bind(null, ["showHighlighting", "readAloudTab"]))
+    .then(function(settings) {
+      if (settings.showHighlighting == 2 && queryString.isPopup) {
+        return getActiveTab()
+          .then(function(activeTab) {
+            var url = brapi.runtime.getURL("popup.html?tab=" + activeTab.id)
+            return (settings.readAloudTab ? Promise.resolve() : Promise.reject("No readAloudTab"))
+              .then(function() {return updateTab(settings.readAloudTab, {url: url, active: true})})
+              .then(function(tab) {return updateWindow(tab.windowId, {focused: true})})
+              .catch(function() {
+                return createWindow({
+                  url: url,
+                  focused: true,
+                  type: "popup",
+                  width: 500,
+                  height: 600,
+                })
+              })
+          })
+          .then(window.close)
+      }
+      else if (queryString.tab) {
+        return bgPageInvoke("stop")
+          .then(function() {$("#btnPlay").click()})
+      }
+      else {
+        return bgPageInvoke("getPlaybackState")
+          .then(function(state) {if (state != "PLAYING") $("#btnPlay").click()})
+      }
+    })
   setInterval(updateButtons, 500);
 
   refreshSize();
@@ -42,7 +81,8 @@ function handleError(err) {
             })
           break;
         case "#sign-in":
-          getAuthToken({interactive: true})
+          getBackgroundPage()
+            .then(callMethod("getAuthToken", {interactive: true}))
             .then(function(token) {
               if (token) $("#btnPlay").click();
             })
@@ -63,11 +103,14 @@ function handleError(err) {
               $("#btnPlay").click();
             })
           break;
+        case "#open-pdf-viewer":
+          brapi.tabs.create({url: config.pdfViewerUrl})
+          break
       }
     })
 
     if (errInfo.code == "error_upload_pdf") {
-      setTabUrl(undefined, "https://assets.lsdsoftware.com/read-aloud/page-scripts/pdf-upload.html");
+      setTabUrl(errInfo.tabId, config.pdfViewerUrl)
     }
   }
   else {
@@ -79,9 +122,12 @@ function updateButtons() {
     return Promise.all([
       getSettings(),
       bgPageInvoke("getPlaybackState"),
-      bgPageInvoke("getSpeechPosition")
+      bgPageInvoke("getSpeechPosition"),
+      bgPageInvoke("getPlaybackError")
     ])
-  .then(spread(function(settings, state, speechPos) {
+  .then(spread(function(settings, state, speechPos, playbackErr) {
+    if (playbackErr) playbackErrorProcessor.next(playbackErr)
+
     $("#imgLoading").toggle(state == "LOADING");
     $("#btnSettings").toggle(state == "STOPPED");
     $("#btnPlay").toggle(state == "PAUSED" || state == "STOPPED");
@@ -94,6 +140,7 @@ function updateButtons() {
       var pos = speechPos;
       var elem = $("#highlight");
       if (!elem.data("texts") || elem.data("texts").length != pos.texts.length || elem.data("texts").some(function(text,i) {return text != pos.texts[i]})) {
+        elem.css("direction", pos.isRTL ? "rtl" : "");
         elem.data({texts: pos.texts, index: -1});
         elem.empty();
         for (var i=0; i<pos.texts.length; i++) {
@@ -117,7 +164,7 @@ function updateButtons() {
 
 function onPlay() {
   $("#status").hide();
-  bgPageInvoke("play")
+  (queryString.tab ? bgPageInvoke("playTab", [Number(queryString.tab)]) : bgPageInvoke("playTab"))
     .then(updateButtons)
     .catch(handleError)
 }
@@ -135,7 +182,7 @@ function onStop() {
 }
 
 function onSettings() {
-  location.href = "options.html?referer=popup.html";
+  location.href = "options.html?referer=" + encodeURIComponent(location.pathname + location.search);
 }
 
 function onForward() {
@@ -180,6 +227,8 @@ function refreshSize() {
       var windowSize = getWindowSize(settings);
       $("#highlight").css({
         "font-size": fontSize,
+      })
+      if (queryString.isPopup) $("#highlight").css({
         width: isMobileOS() ? "100%" : windowSize[0],
         height: windowSize[1]
       })

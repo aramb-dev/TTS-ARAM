@@ -1,5 +1,6 @@
 
 var activeDoc;
+var playbackError = null;
 var silenceLoop = new Audio("sound/silence.mp3");
 silenceLoop.loop = true;
 
@@ -12,7 +13,7 @@ if (getBrowser() == "firefox") brapi.runtime.onStartup.addListener(installContex
  */
 var handlers = {
   playText: playText,
-  play: play,
+  playTab: playTab,
   stop: stop,
   pause: pause,
   getPlaybackState: getPlaybackState,
@@ -29,6 +30,9 @@ var handlers = {
       .then(function(speech) {
         return speech && speech.getPosition();
       })
+  },
+  getPlaybackError: function() {
+    if (playbackError) return {message: playbackError.message}
   },
 }
 
@@ -51,33 +55,6 @@ brapi.runtime.onMessage.addListener(
 
 
 /**
- * RPC handlers
- */
-brapi.runtime.onMessageExternal.addListener(
-  function(request, sender, sendResponse) {
-    if (request.permissions) {
-      requestPermissions({
-        permissions: ['tabs'],
-        origins: ['http://*/', 'https://*/'],
-      });
-    } else {
-      execCommand(request.command);
-    }
-  }
-);
-
-brapi.runtime.onConnectExternal.addListener(
-  function(port) {
-    port.onMessage.addListener(function(msg) {
-      execCommand(msg.command, function() {
-        port.postMessage('end');
-      });
-    });
-  }
-);
-
-
-/**
  * Context menu installer & handlers
  */
 function installContextMenus() {
@@ -94,9 +71,11 @@ brapi.contextMenus.onClicked.addListener(function(info, tab) {
   if (info.menuItemId == "read-selection")
     stop()
       .then(function() {
-        return playText(info.selectionText, function(err) {
-          if (err) console.error(err);
-        })
+        if (tab && tab.id != -1) return detectTabLanguage(tab.id)
+        else return undefined
+      })
+      .then(function(lang) {
+        return playText(info.selectionText, {lang: lang})
       })
       .catch(console.error)
 })
@@ -105,17 +84,12 @@ brapi.contextMenus.onClicked.addListener(function(info, tab) {
 /**
  * Shortcut keys handlers
  */
-function execCommand(command, onEnd) {
+function execCommand(command) {
   if (command == "play") {
     getPlaybackState()
       .then(function(state) {
         if (state == "PLAYING") return pause();
-        else if (state == "STOPPED" || state == "PAUSED") {
-          return play(function(err) {
-            if (err) console.error(err);
-            if (onEnd) onEnd()
-          })
-        }
+        else if (state == "STOPPED" || state == "PAUSED") return playTab()
       })
       .catch(console.error)
   }
@@ -125,7 +99,9 @@ function execCommand(command, onEnd) {
 }
 
 if (brapi.commands)
-brapi.commands.onCommand.addListener(execCommand);
+brapi.commands.onCommand.addListener(function(command) {
+  execCommand(command)
+})
 
 
 /**
@@ -146,8 +122,14 @@ if (brapi.ttsEngine) (function() {
 /**
  * METHODS
  */
-function playText(text, onEnd) {
-  if (!activeDoc) openDoc(new SimpleSource(text.split(/(?:\r?\n){2,}/)), onEnd);
+function playText(text, opts) {
+  opts = opts || {}
+  playbackError = null
+  if (!activeDoc) {
+    openDoc(new SimpleSource(text.split(/(?:\r?\n){2,}/), {lang: opts.lang}), function(err) {
+      if (err) playbackError = err
+    })
+  }
   return activeDoc.play()
     .catch(function(err) {
       handleError(err);
@@ -156,8 +138,13 @@ function playText(text, onEnd) {
     })
 }
 
-function play(onEnd) {
-  if (!activeDoc) openDoc(new TabSource(), onEnd);
+function playTab(tabId) {
+  playbackError = null
+  if (!activeDoc) {
+    openDoc(new TabSource(tabId), function(err) {
+      if (err) playbackError = err
+    })
+  }
   return activeDoc.play()
     .catch(function(err) {
       handleError(err);
@@ -255,7 +242,7 @@ function reportIssue(url, comment) {
 }
 
 function authWavenet() {
-  createTab("https://cloud.google.com/text-to-speech/#convert-your-text-to-speech-right-now", true)
+  createTab("https://cloud.google.com/text-to-speech/#put-text-to-speech-into-action", true)
     .then(function(tab) {
       addRequestListener();
       brapi.tabs.onRemoved.addListener(onTabRemoved);

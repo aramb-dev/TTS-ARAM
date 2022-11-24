@@ -2,9 +2,16 @@
 body {
   margin: 20px 15px 10px 15px;
 }
+.dark-mode a {
+  color: yellowgreen;
+}
 
 #speech-info {
   text-align: center;
+}
+
+#imgLoading {
+  height: 32px;
 }
 
 #buttons {
@@ -40,9 +47,11 @@ body {
   vertical-align: text-bottom;
 }
 
-#highlight {
+body.is-popup #highlight {
   width: 350px;
   height: 300px;
+}
+#highlight {
   border: 1px solid lightgray;
   padding: 1rem;
   background-color: #ffefd5;
@@ -53,8 +62,20 @@ body {
   box-sizing: border-box;
 }
 #highlight span.active {
-  background: yellow;
+  background-color: yellow;
 }
+.dark-mode #highlight {
+  background-color: #333;
+  border: none;
+  color: #d0d0d0;
+}
+.dark-mode #highlight span.active {
+  background-color: #0c4e00;
+}
+body:not(.is-popup) #highlight {
+  height: calc(100vh - 150px);
+}
+
 
 #toolbar {
   margin-top: .5em;
@@ -77,6 +98,7 @@ body {
   position: relative;
   flex: 0 1 auto;
   display: flex;
+  align-items: center;
   padding: .25rem .5rem;
   font-size: .875rem;
   line-height: 1.5;
@@ -95,6 +117,14 @@ body {
 #toolbar .material-icons {
   font-size: 1em;
 }
+.dark-mode #toolbar .btn {
+  background-color: #3e3e3e;
+  color: #ddd;
+}
+body:not(.is-popup) #toolbar .btn-group.window-size {
+  display: none;
+}
+
 
 #footer {
   text-align: center;
@@ -113,6 +143,9 @@ body {
   color: red;
   text-align: center;
   display: none;
+}
+.dark-mode #status {
+  color: #f88;
 }
 
 #attribution {

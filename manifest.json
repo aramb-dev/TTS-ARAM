@@ -1,15 +1,15 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
 
-  "name": "Text-To-Speech READER",
-  "short_name": "TTS by ARAM SERVICES",
-  "description": "This extension is hereby made for you to be able to raed websites and texts without getting someone to do it for you. ",
-  "version": "1.35.99",
+  "name": "__MSG_extension_name__",
+  "short_name": "__MSG_extension_short_name__",
+  "description": "__MSG_extension_description__",
+  "version": "1.59.1",
   "default_locale": "en",
 
   "browser_action": {
     "default_icon": "img/icon.png",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html?isPopup=1"
   },
   "icons": {
     "16": "img/icon-16.png",
@@ -35,12 +35,14 @@
     "https://translate.google.com/"
   ],
   "optional_permissions": [
-    "tabs",
     "webRequest",
     "webNavigation",
     "http://*/",
     "https://*/",
     "file://*/*"
+  ],
+  "web_accessible_resources": [
+    "js/page/*"
   ],
   "content_security_policy": "script-src 'self'; object-src 'self'",
   "background": {

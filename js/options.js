@@ -15,6 +15,28 @@ function initialize(allVoices, settings) {
       })
   }
 
+  //account button
+  $("#account-button")
+    .click(function() {
+      getAuthToken({interactive: true})
+        .then(function(token) {
+          brapi.tabs.create({url: config.webAppUrl + "/premium-voices.html?t=" + token});
+        })
+        .catch(handleError)
+      return false;
+    })
+
+  //logout button
+  $("#logout-button")
+    .click(function() {
+      clearAuthToken()
+        .then(function() {
+          showAccountInfo(null);
+        })
+        .catch(console.error)
+      return false;
+    })
+
 
   //rate slider
   createSlider($("#rate").get(0), Math.log(settings.rate || defaults.rate) / Math.log($("#rate").data("pow")), function(value) {
@@ -40,7 +62,7 @@ function initialize(allVoices, settings) {
     .val(settings.voiceName || "")
     .change(function() {
       var voiceName = $(this).val();
-      if (voiceName == "@custom") brapi.tabs.create({url: "custom-voices.html"});
+      if (voiceName == "@custom") location.href = "custom-voices.html";
       else if (voiceName == "@premium") brapi.tabs.create({url: "premium-voices.html"});
       else saveSettings({voiceName: voiceName});
     });
@@ -66,16 +88,10 @@ function initialize(allVoices, settings) {
 
 
   //showHighlighting
-  $("[name=highlighting]")
-    .prop("checked", function() {
-      var active = $(this).val() == (settings.showHighlighting != null ? settings.showHighlighting : defaults.showHighlighting);
-      if (active) $(this).parent(".btn").addClass("active");
-      return active;
-    })
+  $("#show-highlighting")
+    .val(settings.showHighlighting || defaults.showHighlighting)
     .change(function() {
-      $("[name=highlighting]").parent(".btn").removeClass("active");
-      $(this).parent(".btn").addClass("active");
-      saveSettings({showHighlighting: Number($(this).val())});
+      saveSettings({showHighlighting: $(this).val()})
     })
 
 
@@ -99,7 +115,7 @@ function initialize(allVoices, settings) {
       .then(function(result) {
         return bgPageInvoke("stop")
           .then(function() {
-            return bgPageInvoke("playText", [result.text]);
+            return bgPageInvoke("playText", [result.text, {lang: lang}]);
           })
       })
       .catch(function(err) {
@@ -157,7 +173,6 @@ function populateVoices(allVoices, settings) {
   });
 
   //create the premium optgroup
-  if (getBrowser() == "chrome") {
   $("<optgroup>").appendTo($("#voices"));
   var premium = $("<optgroup>")
     .attr("label", brapi.i18n.getMessage("options_voicegroup_premium"))
@@ -173,24 +188,18 @@ function populateVoices(allVoices, settings) {
       return token ? getAccountInfo(token) : null;
     })
     .then(function(account) {
+      showAccountInfo(account);
       if (account && !account.balance) {
         premium.prev().remove();
         premium.remove();
       }
     })
-  }
 
   //create the additional optgroup
   $("<optgroup>").appendTo($("#voices"));
   var additional = $("<optgroup>")
     .attr("label", brapi.i18n.getMessage("options_voicegroup_additional"))
     .appendTo($("#voices"));
-  if (getBrowser() == "chrome") {
-  $("<option>")
-    .val("@premium")
-    .text(brapi.i18n.getMessage("options_enable_premium_voices"))
-    .appendTo(additional)
-  }
   $("<option>")
     .val("@custom")
     .text(brapi.i18n.getMessage("options_enable_custom_voices"))
@@ -198,14 +207,13 @@ function populateVoices(allVoices, settings) {
 }
 
 function voiceSorter(a, b) {
-  if (isRemoteVoice(a)) {
-    if (isRemoteVoice(b)) return a.voiceName.localeCompare(b.voiceName);
-    else return 1;
+  function getWeight(voice) {
+    var weight = 0
+    if (isRemoteVoice(voice)) weight += 10
+    if (!isReadAloudCloud(voice)) weight += 1
+    return weight
   }
-  else {
-    if (isRemoteVoice(b)) return -1;
-    else return a.voiceName.localeCompare(b.voiceName);
-  }
+  return getWeight(a)-getWeight(b) || a.voiceName.localeCompare(b.voiceName)
 }
 
 
@@ -242,7 +250,10 @@ function handleError(err) {
         case "#sign-in":
           getAuthToken({interactive: true})
             .then(function(token) {
-              if (token) $("#test-voice").click();
+              if (token) {
+                $("#test-voice").click();
+                getAccountInfo(token).then(showAccountInfo);
+              }
             })
             .catch(function(err) {
               $("#status").text(err.message).show();
@@ -266,6 +277,16 @@ function handleError(err) {
   }
   else {
     $("#status").text(err.message).show();
+  }
+}
+
+function showAccountInfo(account) {
+  if (account) {
+    $("#account-email").text(account.email);
+    $("#account-info").show();
+  }
+  else {
+    $("#account-info").hide();
   }
 }
 

@@ -31,10 +31,10 @@ Read Aloud allows you to select from a variety of text-to-speech voices, includi
 ## Basic Usage
 
 ### Extension Button
-<img src="./languages.gif">
+<img src="./instructions/languages.gif">
 
 ### Right Click Menu
-<img src="./demo-right-click.gif">
+<img src="./instructions/demo-right-click.gif">
 
 
 ## Advanced Usage

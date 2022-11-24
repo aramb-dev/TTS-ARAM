@@ -47,6 +47,15 @@
   "options_show_highlighting": {
     "message": "Text Highlighting"
   },
+  "options_highlighting_off": {
+    "message": "Turn off"
+  },
+  "options_highlighting_popup": {
+    "message": "Show in popup"
+  },
+  "options_highlighting_window": {
+    "message": "Show in a separate window"
+  },
   "options_hotkeys_link": {
     "message": "Edit shortcut keys"
   },
@@ -62,17 +71,29 @@
   "options_success_status": {
     "message": "Changes saved."
   },
+  "options_logged_in_as": {
+    "message": "Logged in as"
+  },
+  "options_account_button": {
+    "message": "Account"
+  },
+  "options_logout_button": {
+    "message": "Logout"
+  },
   "context_read_selection": {
     "message": "Read aloud selected text"
   },
   "error_no_text": {
-    "message": "Didn't find any text to read"
+    "message": "Didn't find any text to read, try selecting the text you want to read first"
   },
   "error_no_voice": {
     "message": "Language not supported '{lang}'"
   },
   "error_upload_pdf": {
     "message": "Please use the form to upload your PDF file to read aloud"
+  },
+  "error_ajax_pdf": {
+    "message": "Please save this PDF file to your computer and open it inside this [PDF viewer](open-pdf-viewer) to read aloud"
   },
   "error_page_unreadable": {
     "message": "Cannot read aloud this website"

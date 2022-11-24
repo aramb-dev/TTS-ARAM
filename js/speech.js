@@ -3,7 +3,6 @@ function Speech(texts, options) {
   options.rate = (options.rate || 1) * (isGoogleNative(options.voice) ? 0.9 : 1);
 
   for (var i=0; i<texts.length; i++) if (/[\w)]$/.test(texts[i])) texts[i] += '.';
-  if (texts.length) texts = getChunks(texts.join("\n\n"));
 
   var self = this;
   var engine;
@@ -14,6 +13,7 @@ function Speech(texts, options) {
   var ready = Promise.resolve(pickEngine())
     .then(function(x) {
       engine = x;
+      if (texts.length) texts = getChunks(texts.join("\n\n"));
     })
 
   this.options = options;
@@ -32,8 +32,9 @@ function Speech(texts, options) {
       return googleTranslateTtsEngine.ready()
         .then(function() {return googleTranslateTtsEngine})
         .catch(function(err) {
-          console.error(err);
+          console.warn("GoogleTranslate unavailable,", err);
           options.voice.autoSelect = true;
+          options.voice.voiceName = "Microsoft US English (Zira)";
           return remoteTtsEngine;
         })
     }
@@ -72,6 +73,7 @@ function Speech(texts, options) {
     return {
       index: index,
       texts: texts,
+      isRTL: /^(ar|az|dv|he|iw|ku|fa|ur)\b/.test(options.lang),
     }
   }
 
@@ -96,7 +98,10 @@ function Speech(texts, options) {
               state = "IDLE";
               if (engine.setNextStartTime) engine.setNextStartTime(new Date().getTime() + pauseDuration, options);
               index++;
-              play();
+              play()
+                .catch(function(err) {
+                  if (self.onEnd) self.onEnd(err)
+                })
             },
             function(err) {
               state = "IDLE";
@@ -146,7 +151,8 @@ function Speech(texts, options) {
   function forward() {
     if (index+1 < texts.length) {
       index++;
-      return delayedPlay();
+      if (state == "PLAYING") return delayedPlay()
+      else return stop()
     }
     else return Promise.reject(new Error("Can't forward, at end"));
   }
@@ -157,7 +163,8 @@ function Speech(texts, options) {
     }
     else if (index > 0) {
       index--;
-      return stop().then(play);
+      if (state == "PLAYING") return stop().then(play)
+      else return stop()
     }
     else return Promise.reject(new Error("Can't rewind, at beginning"));
   }
@@ -211,10 +218,10 @@ function Speech(texts, options) {
 function WordBreaker(wordLimit, punctuator) {
   this.breakText = breakText;
   function breakText(text) {
-    return merge(punctuator.getParagraphs(text), breakParagraph);
+    return punctuator.getParagraphs(text).flatMap(breakParagraph)
   }
   function breakParagraph(text) {
-    return merge(punctuator.getSentences(text), breakSentence);
+    return punctuator.getSentences(text).flatMap(breakSentence)
   }
   function breakSentence(sentence) {
     return merge(punctuator.getPhrases(sentence), breakPhrase);
